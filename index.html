@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIGHTER ACE</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Orbitron:wght@500;700;900&display=swap');
+
+:root {
+  --bg:      #03080f;
+  --surface: #07101e;
+  --panel:   #0a1828;
+  --border:  #132a44;
+  --border2: #1e4060;
+  --accent:  #00e5ff;
+  --accent2: #ff3d00;
+  --gold:    #ffb300;
+  --win:     #00e676;
+  --text:    #b8daf0;
+  --dim:     #2e5570;
+  --hit-bg:  #2a0500;
+  --miss-bg: #071520;
+  --ship-bg: #062030;
+  --glow-a:  0 0 16px #00e5ff66;
+  --glow-r:  0 0 16px #ff3d0066;
+  --glow-g:  0 0 16px #00e67666;
+  --nose-col:#ffb300;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 16px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── animated star field ─── */
+body::before {
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(1px 1px at  8% 12%,#fff3 0%,transparent 100%),
+    radial-gradient(1px 1px at 18% 55%,#fff2 0%,transparent 100%),
+    radial-gradient(1px 1px at 31% 28%,#fff2 0%,transparent 100%),
+    radial-gradient(1px 1px at 43%  8%,#fff3 0%,transparent 100%),
+    radial-gradient(1px 1px at 56% 74%,#fff2 0%,transparent 100%),
+    radial-gradient(1px 1px at 67% 41%,#fff3 0%,transparent 100%),
+    radial-gradient(1px 1px at 79% 19%,#fff2 0%,transparent 100%),
+    radial-gradient(1px 1px at 88% 62%,#fff3 0%,transparent 100%),
+    radial-gradient(1px 1px at 23% 83%,#fff2 0%,transparent 100%),
+    radial-gradient(1px 1px at 95% 36%,#fff2 0%,transparent 100%),
+    radial-gradient(2px 2px at 50% 50%,#fff1 0%,transparent 100%);
+  pointer-events:none;z-index:0;
+}
+/* scanline */
+body::after {
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,#0002 3px,#0002 4px);
+  pointer-events:none;z-index:9998;
+}
+
+#app{position:relative;z-index:1}
+
+.screen{display:none}
+.screen.active{display:flex}
+
+/* ══════════════════════════════════════
+   MENU
+══════════════════════════════════════ */
+#menu {
+  flex-direction:column;align-items:center;justify-content:center;
+  min-height:100vh;gap:36px;padding:40px 20px;
+}
+
+.logo { text-align:center; }
+
+.logo-sub {
+  font-family:'Rajdhani',sans-serif;
+  font-size:.8rem;letter-spacing:.5em;
+  color:var(--dim);text-transform:uppercase;margin-bottom:10px;
+}
+
+.logo h1 {
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(2.2rem,7vw,5rem);
+  font-weight:900;letter-spacing:.1em;
+  background:linear-gradient(135deg,#00e5ff 30%,#0099cc);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 24px #00e5ff88);
+  animation:hglow 4s ease-in-out infinite;
+  line-height:1;
+}
+
+@keyframes hglow{
+  0%,100%{filter:drop-shadow(0 0 16px #00e5ff66)}
+  50%{filter:drop-shadow(0 0 40px #00e5ffaa)}
+}
+
+.jet-anim {
+  font-size:3.5rem;
+  display:block;margin-bottom:8px;
+  animation:jetfloat 3.5s ease-in-out infinite;
+  filter:drop-shadow(0 0 14px #00e5ff);
+}
+@keyframes jetfloat{
+  0%,100%{transform:translateY(0) rotate(-4deg)}
+  50%{transform:translateY(-12px) rotate(4deg)}
+}
+
+.tagline {
+  font-size:.85rem;letter-spacing:.3em;color:var(--dim);
+  margin-top:10px;font-weight:600;
+}
+
+/* ─── buttons ─── */
+.btn-group{display:flex;flex-direction:column;gap:14px;width:100%;max-width:320px}
+
+.btn {
+  position:relative;overflow:hidden;
+  background:transparent;
+  border:none;outline:none;
+  cursor:pointer;
+  font-family:'Orbitron',sans-serif;
+  font-size:.78rem;font-weight:700;
+  letter-spacing:.18em;
+  padding:0;
+}
+
+.btn-inner {
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  padding:15px 28px;
+  border:1px solid var(--accent);
+  color:var(--accent);
+  transition:color .2s,background .2s,box-shadow .2s;
+  clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);
+}
+
+.btn:hover .btn-inner {
+  background:var(--accent);color:var(--bg);
+  box-shadow:var(--glow-a);
+}
+
+.btn.red .btn-inner{border-color:var(--accent2);color:var(--accent2)}
+.btn.red:hover .btn-inner{background:var(--accent2);color:#fff;box-shadow:var(--glow-r)}
+
+.btn.ghost .btn-inner{border-color:var(--border2);color:var(--dim)}
+.btn.ghost:hover .btn-inner{background:var(--border2);color:var(--text);box-shadow:none}
+
+.btn.green .btn-inner{border-color:var(--win);color:var(--win)}
+.btn.green:hover .btn-inner{background:var(--win);color:var(--bg);box-shadow:var(--glow-g)}
+
+.btn.sm .btn-inner{padding:9px 18px;font-size:.68rem}
+
+/* ─── network panel ─── */
+.net-panel {
+  background:var(--panel);
+  border:1px solid var(--border);
+  padding:22px;width:100%;max-width:480px;
+  animation:fadein .3s ease;
+}
+@keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.net-panel h3 {
+  font-family:'Orbitron',sans-serif;font-size:.75rem;
+  color:var(--accent);letter-spacing:.2em;
+  border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:16px;
+}
+
+.net-tab-bar{display:flex;gap:0;margin-bottom:18px;border:1px solid var(--border)}
+.net-tab {
+  flex:1;padding:10px;text-align:center;
+  font-family:'Orbitron',sans-serif;font-size:.68rem;font-weight:700;
+  letter-spacing:.12em;cursor:pointer;
+  color:var(--dim);background:transparent;border:none;outline:none;
+  transition:all .2s;
+}
+.net-tab.active{color:var(--accent);background:#00e5ff12;border-bottom:2px solid var(--accent)}
+
+.net-section{display:none}
+.net-section.active{display:block}
+
+.net-input {
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  color:var(--text);font-family:'Rajdhani',sans-serif;font-size:.9rem;
+  padding:10px 12px;outline:none;margin-bottom:10px;resize:none;
+}
+.net-input:focus{border-color:var(--accent);box-shadow:0 0 0 1px #00e5ff33}
+
+.code-box {
+  font-size:.6rem;word-break:break-all;
+  background:var(--bg);border:1px solid var(--border);
+  padding:8px;max-height:72px;overflow-y:auto;
+  margin:8px 0;color:var(--dim);user-select:all;
+  font-family:monospace;line-height:1.4;
+}
+
+.badge {
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 12px;font-size:.72rem;font-weight:600;
+  letter-spacing:.08em;margin:6px 0;
+}
+.badge.wait{background:#1a3800;color:#88ff44;border:1px solid #44aa00}
+.badge.ok  {background:#003a18;color:#00e676;border:1px solid #00aa44}
+.badge.err {background:#3a0000;color:#ff5555;border:1px solid #aa0000}
+.badge.inf {background:#001a38;color:var(--accent);border:1px solid var(--border)}
+
+.net-row{display:flex;gap:8px;align-items:flex-start}
+.net-label{font-size:.75rem;color:var(--dim);margin-bottom:6px;font-weight:600;letter-spacing:.05em}
+
+/* ══════════════════════════════════════
+   PLACEMENT
+══════════════════════════════════════ */
+#placement {
+  flex-direction:column;align-items:center;
+  min-height:100vh;padding:24px 16px;gap:18px;
+}
+
+.place-header{text-align:center}
+.place-header h2{
+  font-family:'Orbitron',sans-serif;font-size:1.1rem;
+  color:var(--accent);letter-spacing:.2em;
+  text-shadow:0 0 20px #00e5ff66;
+}
+.place-header p{font-size:.8rem;color:var(--dim);margin-top:4px;letter-spacing:.05em}
+
+/* ship preview */
+.ship-preview-wrap{
+  background:var(--panel);border:1px solid var(--border);
+  padding:14px 20px;display:inline-flex;align-items:center;gap:20px;
+}
+
+.preview-label{font-size:.7rem;color:var(--dim);font-weight:600;letter-spacing:.1em;width:80px}
+.preview-grid{display:grid;gap:2px;line-height:0}
+.preview-cell{width:14px;height:14px;background:#071520;border:1px solid #0a1e30}
+.preview-cell.on{background:#00e5ff55;border-color:var(--accent)}
+.preview-cell.nose{background:var(--gold);border-color:#ffcc44;box-shadow:0 0 6px #ffb30088}
+
+.place-toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+
+.hint-bar {
+  display:flex;gap:20px;font-size:.72rem;color:var(--dim);
+  flex-wrap:wrap;justify-content:center;
+}
+.hint-bar span{display:flex;align-items:center;gap:5px}
+.swatch{width:10px;height:10px;display:inline-block}
+.swatch.ship{background:#00e5ff55;border:1px solid var(--accent)}
+.swatch.nose{background:var(--gold);border:1px solid #ffcc44}
+.swatch.hit{background:#ff3d00}
+.swatch.miss{background:var(--miss-bg);border:1px solid var(--border)}
+
+/* ══════════════════════════════════════
+   GAME
+══════════════════════════════════════ */
+#game {
+  flex-direction:column;align-items:center;
+  min-height:100vh;padding:14px 12px;gap:14px;
+}
+
+.game-topbar {
+  width:100%;max-width:960px;
+  display:grid;grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  border-bottom:1px solid var(--border);padding-bottom:12px;gap:10px;
+}
+
+.game-brand{
+  font-family:'Orbitron',sans-serif;font-size:.85rem;
+  color:var(--accent);letter-spacing:.15em;
+}
+
+.turn-pill {
+  font-family:'Orbitron',sans-serif;font-size:.7rem;
+  padding:7px 20px;border:1px solid;letter-spacing:.12em;
+  white-space:nowrap;text-align:center;
+}
+.turn-pill.mine{color:var(--win);border-color:var(--win);box-shadow:0 0 12px #00e67644;animation:blink 1.2s step-end infinite}
+.turn-pill.theirs{color:var(--dim);border-color:var(--border)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+
+.topbar-right{display:flex;justify-content:flex-end}
+
+/* stats */
+.stats-bar{
+  display:flex;gap:24px;font-size:.78rem;font-weight:600;
+  flex-wrap:wrap;justify-content:center;
+}
+.stat{display:flex;flex-direction:column;align-items:center;gap:2px}
+.stat-val{font-family:'Orbitron',sans-serif;font-size:1.1rem;color:var(--accent)}
+.stat-lbl{font-size:.62rem;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+
+/* boards */
+.boards-wrap{
+  display:flex;gap:28px;flex-wrap:wrap;
+  justify-content:center;align-items:flex-start;
+}
+.board-section{display:flex;flex-direction:column;align-items:center;gap:8px}
+.board-label{
+  font-family:'Orbitron',sans-serif;font-size:.65rem;
+  color:var(--dim);letter-spacing:.2em;text-transform:uppercase;
+}
+.board-label.enemy-lbl{color:var(--accent2);text-shadow:0 0 8px #ff3d0044}
+
+/* grid */
+.grid-container {
+  display:grid;
+  grid-template-columns:22px repeat(10,1fr);
+  grid-template-rows:22px repeat(10,1fr);
+  gap:1px;
+  background:var(--border);
+  border:1px solid var(--border);
+  box-shadow:0 4px 32px #00000099;
+}
+
+.gh { /* grid header */
+  background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',sans-serif;
+  font-size:.55rem;color:var(--dim);
+}
+
+.gc { /* grid cell */
+  width:34px;height:34px;
+  background:var(--grid-bg, #060e1a);
+  position:relative;cursor:default;
+  transition:background .12s;
+}
+@media(max-width:520px){
+  .gc{width:26px;height:26px}
+  .grid-container{grid-template-columns:18px repeat(10,1fr);grid-template-rows:18px repeat(10,1fr)}
+  .gh{font-size:.45rem}
+}
+
+.gc.clickable{cursor:crosshair}
+.gc.clickable:hover{background:#0d2840;box-shadow:inset 0 0 10px #00e5ff44}
+
+/* ship states */
+.gc.ship    {background:var(--ship-bg);border:1px solid #1a4060}
+.gc.nose-cell{background:#1a1000;border:1px solid #8c6400}
+
+/* after placement — show nose on my board */
+.gc.nose-reveal{background:#1a1200;border:1px solid var(--gold)}
+.gc.nose-reveal::after{
+  content:'★';position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--gold);font-size:.75rem;opacity:.7;
+}
+
+/* attack results */
+.gc.hit{background:var(--hit-bg)}
+.gc.hit::after{
+  content:'✕';position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  color:#ff4400;font-size:1rem;
+  text-shadow:0 0 8px #ff3d00;
+}
+.gc.hit-nose{background:#1a0800}
+.gc.hit-nose::after{
+  content:'★';position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--gold);font-size:1rem;
+  text-shadow:0 0 12px var(--gold);
+  animation:nosehit .4s ease;
+}
+@keyframes nosehit{0%{filter:brightness(3)}100%{filter:brightness(1)}}
+
+.gc.miss{background:var(--miss-bg)}
+.gc.miss::after{
+  content:'·';position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--dim);font-size:1.4rem;
+}
+
+/* placement hover */
+.gc.ph-valid{background:#002a18;cursor:pointer}
+.gc.ph-valid:hover,.gc.ph-hover{background:#004022;box-shadow:inset 0 0 8px #00e67666}
+.gc.ph-nose{background:#1e1000 !important;box-shadow:inset 0 0 10px #ffb30066 !important}
+.gc.ph-invalid{background:#1a0000;cursor:not-allowed}
+
+/* battle log */
+.battle-log{
+  width:100%;max-width:960px;
+  background:var(--panel);border:1px solid var(--border);
+  padding:8px 14px;max-height:76px;overflow-y:auto;
+  font-size:.72rem;font-family:'Rajdhani',sans-serif;font-weight:600;
+}
+.battle-log .l-hit{color:#ff6644}
+.battle-log .l-miss{color:var(--dim)}
+.battle-log .l-nose{color:var(--gold);font-weight:700}
+.battle-log .l-sys{color:var(--accent)}
+
+/* ══════════════════════════════════════
+   OVERLAY
+══════════════════════════════════════ */
+#overlay{
+  display:none;position:fixed;inset:0;
+  background:#000c;z-index:9999;
+  align-items:center;justify-content:center;
+  backdrop-filter:blur(6px);
+}
+#overlay.show{display:flex}
+
+.ov-box{
+  background:var(--panel);
+  border:1px solid var(--accent);
+  padding:44px 56px;text-align:center;
+  box-shadow:var(--glow-a),0 0 80px #00000099;
+  clip-path:polygon(18px 0,100% 0,calc(100% - 18px) 100%,0 100%);
+  max-width:440px;width:90%;
+  animation:ovIn .35s cubic-bezier(.17,.67,.35,1.2);
+}
+@keyframes ovIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+
+.ov-emoji{font-size:3.5rem;display:block;margin-bottom:12px;animation:bounce 1s ease infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+
+.ov-box h2{
+  font-family:'Orbitron',sans-serif;
+  font-size:1.8rem;letter-spacing:.1em;margin-bottom:8px;
+}
+.ov-box h2.win{color:var(--win);text-shadow:0 0 24px var(--win)}
+.ov-box h2.lose{color:var(--accent2);text-shadow:0 0 24px var(--accent2)}
+.ov-box p{color:var(--dim);margin-bottom:28px;font-size:.95rem;line-height:1.5}
+
+/* divider */
+.divider{width:100%;max-width:480px;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ══ MENU ══ -->
+<div id="menu" class="screen active">
+  <div class="logo">
+    <span class="jet-anim">✈</span>
+    <div class="logo-sub">Tactical Air Combat</div>
+    <h1>FIGHTER ACE</h1>
+    <div class="tagline">Target the cockpit · One shot victory</div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn" onclick="startPvE()">
+      <div class="btn-inner">⚔&nbsp; VS COMPUTER</div>
+    </button>
+    <button class="btn" onclick="toggleNet()">
+      <div class="btn-inner">📡&nbsp; LAN / ONLINE</div>
+    </button>
+    <button class="btn ghost" onclick="showRules()">
+      <div class="btn-inner">📖&nbsp; HOW TO PLAY</div>
+    </button>
+  </div>
+
+  <div id="net-panel" class="net-panel" style="display:none">
+    <h3>📡 NETWORK PLAY — WebRTC P2P</h3>
+
+    <div class="net-tab-bar">
+      <button class="net-tab active" onclick="switchTab('host')">HOST ROOM</button>
+      <button class="net-tab" onclick="switchTab('join')">JOIN ROOM</button>
+    </div>
+
+    <!-- HOST -->
+    <div id="tab-host" class="net-section active">
+      <button class="btn sm" onclick="createOffer()">
+        <div class="btn-inner">🏠&nbsp; Create Room</div>
+      </button>
+      <div id="offer-area" style="display:none;margin-top:12px">
+        <div class="net-label">STEP 1 — Send this code to your opponent:</div>
+        <div class="code-box" id="offer-box"></div>
+        <div class="net-row">
+          <button class="btn sm ghost" onclick="copyText('offer-box')">
+            <div class="btn-inner">📋 Copy</div>
+          </button>
+        </div>
+        <div class="net-label" style="margin-top:12px">STEP 2 — Paste their reply code:</div>
+        <textarea class="net-input" id="answer-input" rows="3" placeholder="Paste answer code here…"></textarea>
+        <button class="btn sm green" onclick="connectAnswer()">
+          <div class="btn-inner">🔗 Connect</div>
+        </button>
+        <div id="host-status" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- JOIN -->
+    <div id="tab-join" class="net-section">
+      <div class="net-label">Paste the host's room code:</div>
+      <textarea class="net-input" id="offer-input" rows="3" placeholder="Paste room code here…"></textarea>
+      <button class="btn sm" onclick="joinRoom()">
+        <div class="btn-inner">🚀 Join Room</div>
+      </button>
+      <div id="answer-area" style="display:none;margin-top:12px">
+        <div class="net-label">Send this reply code to the host:</div>
+        <div class="code-box" id="answer-box"></div>
+        <div class="net-row">
+          <button class="btn sm ghost" onclick="copyText('answer-box')">
+            <div class="btn-inner">📋 Copy</div>
+          </button>
+        </div>
+        <div id="join-status" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PLACEMENT ══ -->
+<div id="placement" class="screen">
+  <div class="place-header">
+    <h2>DEPLOY YOUR FIGHTER</h2>
+    <p>Click the grid to place · Press <strong>R</strong> to rotate</p>
+  </div>
+
+  <div class="ship-preview-wrap">
+    <div class="preview-label">SHIP SHAPE</div>
+    <div id="preview-container"></div>
+    <div style="font-size:.68rem;color:var(--dim);line-height:1.7;padding-left:10px">
+      <div><span style="color:var(--gold)">★ Nose</span> = cockpit (1 cell)</div>
+      <div><span style="color:var(--accent)">■ Wings</span> = 3+1+3 cells</div>
+      <div><span style="color:var(--accent)">■ Tail</span> = 1+3 cells</div>
+      <div style="margin-top:4px;color:#ff6644">Hit the ★ nose to WIN!</div>
+    </div>
+  </div>
+
+  <div class="place-toolbar">
+    <button class="btn sm" onclick="rotateShip()">
+      <div class="btn-inner">🔄 Rotate (R)</div>
+    </button>
+    <button class="btn sm ghost" onclick="randomPlace()">
+      <div class="btn-inner">🎲 Random</div>
+    </button>
+    <button class="btn sm red" onclick="resetPlacement()">
+      <div class="btn-inner">↺ Reset</div>
+    </button>
+  </div>
+
+  <div class="hint-bar">
+    <span><span class="swatch nose"></span> Cockpit (★)</span>
+    <span><span class="swatch ship"></span> Body</span>
+    <span><span class="swatch hit"></span> Hit</span>
+    <span><span class="swatch miss"></span> Miss</span>
+  </div>
+
+  <div id="placement-grid-wrap"></div>
+
+  <div id="placement-status" style="color:var(--dim);font-size:.82rem;text-align:center;font-weight:600"></div>
+  <button class="btn green" id="confirm-btn" onclick="confirmPlacement()" style="display:none">
+    <div class="btn-inner">✓ CONFIRM DEPLOYMENT</div>
+  </button>
+</div>
+
+<!-- ══ GAME ══ -->
+<div id="game" class="screen">
+  <div class="game-topbar">
+    <div class="game-brand">✈ FIGHTER ACE</div>
+    <div id="turn-pill" class="turn-pill mine">YOUR TURN</div>
+    <div class="topbar-right">
+      <button class="btn sm red" onclick="quitGame()">
+        <div class="btn-inner">⏹ QUIT</div>
+      </button>
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-val" id="my-hits">0</div><div class="stat-lbl">My Hits</div></div>
+    <div class="stat"><div class="stat-val" id="enemy-hits">0</div><div class="stat-lbl">Hits on Me</div></div>
+  </div>
+
+  <div class="boards-wrap">
+    <div class="board-section">
+      <div class="board-label">— MY FLEET —</div>
+      <div id="my-board" class="grid-container"></div>
+    </div>
+    <div class="board-section">
+      <div class="board-label enemy-lbl">— ATTACK TARGET —</div>
+      <div id="enemy-board" class="grid-container"></div>
+    </div>
+  </div>
+
+  <div class="battle-log" id="battle-log"></div>
+</div>
+
+<!-- ══ OVERLAY ══ -->
+<div id="overlay">
+  <div class="ov-box">
+    <span class="ov-emoji" id="ov-emoji">🏆</span>
+    <h2 id="ov-title">VICTORY!</h2>
+    <p id="ov-msg">You shot down the enemy cockpit!</p>
+    <button class="btn" onclick="returnMenu()">
+      <div class="btn-inner">↩ MAIN MENU</div>
+    </button>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// ═══════════════════════════════════════════════
+//  FIGHTER ACE — Core Game Engine
+// ═══════════════════════════════════════════════
+
+const COLS = ['A','B','C','D','E','F','G','H','I','J'];
+const ROWS = 10;
+
+/*
+  FIGHTER SHAPE (12 cells, no body segment):
+  Rotation 0 = nose pointing UP
+
+  Nose:         (-2, 0)          ← cockpit ★
+  Wings:  (-1,-3)(-1,-2)(-1,-1)(-1,0)(-1,1)(-1,2)(-1,3)  [7 cells]
+  Tail connector: (0, 0)
+  Tail tips:    (1,-1)  (1,0)  (1,1)
+
+  Total = 1 + 7 + 1 + 3 = 12 cells
+  Nose index = 0  (always the first offset)
+*/
+
+const SHIP_OFFSETS = [
+  // rotation 0 — nose UP
+  [
+    [-2, 0],                                                        // NOSE
+    [-1,-3],[-1,-2],[-1,-1],[-1,0],[-1,1],[-1,2],[-1,3],           // wings
+    [ 0, 0],                                                        // tail connector
+    [ 1,-1],[ 1, 0],[ 1, 1]                                        // tail tips
+  ],
+  // rotation 1 — nose RIGHT
+  [
+    [ 0, 2],                                                        // NOSE
+    [-3, 1],[-2, 1],[-1, 1],[ 0, 1],[ 1, 1],[ 2, 1],[ 3, 1],
+    [ 0, 0],
+    [-1,-1],[ 0,-1],[ 1,-1]
+  ],
+  // rotation 2 — nose DOWN
+  [
+    [ 2, 0],                                                        // NOSE
+    [ 1, 3],[ 1, 2],[ 1, 1],[ 1, 0],[ 1,-1],[ 1,-2],[ 1,-3],
+    [ 0, 0],
+    [-1, 1],[-1, 0],[-1,-1]
+  ],
+  // rotation 3 — nose LEFT
+  [
+    [ 0,-2],                                                        // NOSE
+    [ 3,-1],[ 2,-1],[ 1,-1],[ 0,-1],[-1,-1],[-2,-1],[-3,-1],
+    [ 0, 0],
+    [ 1, 1],[ 0, 1],[-1, 1]
+  ]
+];
+
+function getShipCells(anchor, rot) {
+  return SHIP_OFFSETS[rot % 4].map(([dr,dc]) => ({r: anchor.r+dr, c: anchor.c+dc}));
+}
+function cellsValid(cells) {
+  return cells.every(({r,c}) => r>=0 && r<ROWS && c>=0 && c<COLS.length);
+}
+
+// ── State ──────────────────────────────────────
+let gameMode   = 'pve';   // 'pve' | 'pvp'
+let rotation   = 0;
+let placedCells  = [];    // my ship cells [{r,c}]
+let myNose     = null;    // my nose cell {r,c}
+let enemyNose  = null;    // enemy nose cell (known after game over reveal, or AI)
+
+// myBoard: 0=empty 1=ship 2=hit 3=miss
+let myBoard = newGrid();
+// enemyBoard (my view): 0=unknown 1=miss 2=hit
+let enemyBoard = newGrid();
+
+let enemyHidden = [];   // actual enemy ship cells
+let enemyNoseCell = null; // actual enemy nose
+
+let myTurn        = true;
+let myHitsCount   = 0;
+let enemyHitsCount= 0;
+let gameActive    = false;
+
+// AI
+let aiTried  = new Set();
+let aiQueue  = [];
+
+// WebRTC
+let pc = null, dc = null, isHost = false;
+let pvpMeReady = false, pvpThemReady = false;
+
+function newGrid() {
+  return Array.from({length:ROWS}, ()=>Array(COLS.length).fill(0));
+}
+
+// ── Helpers ──────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function log(msg, cls='') {
+  const el = document.getElementById('battle-log');
+  if(!el) return;
+  const d = document.createElement('div');
+  d.className = cls; d.textContent = msg;
+  el.prepend(d);
+}
+
+function showOverlay(win) {
+  document.getElementById('ov-emoji').textContent = win ? '🏆' : '💥';
+  document.getElementById('ov-title').textContent = win ? 'VICTORY!' : 'DEFEAT!';
+  document.getElementById('ov-title').className   = win ? 'win' : 'lose';
+  document.getElementById('ov-msg').textContent   = win
+    ? 'Enemy cockpit destroyed — mission complete!'
+    : 'Your cockpit was hit — fighter down!';
+  document.getElementById('overlay').classList.add('show');
+}
+
+// ── GRID BUILD ──────────────────────────────
+function buildGrid(id, clickable, showMine) {
+  const el = document.getElementById(id);
+  el.innerHTML = '';
+  // corner
+  el.appendChild(makeGH(''));
+  COLS.forEach(c => el.appendChild(makeGH(c)));
+  for(let r=0; r<ROWS; r++) {
+    el.appendChild(makeGH(r+1));
+    for(let c=0; c<COLS.length; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'gc';
+      cell.dataset.r = r; cell.dataset.c = c;
+      if(clickable) { cell.classList.add('clickable'); cell.addEventListener('click', ()=>onAttack(r,c)); }
+      if(showMine) applyMyBoardClass(cell, r, c);
+      el.appendChild(cell);
+    }
+  }
+}
+
+function makeGH(txt) {
+  const d = document.createElement('div');
+  d.className='gh'; d.textContent=txt; return d;
+}
+
+function applyMyBoardClass(cell, r, c) {
+  const v = myBoard[r][c];
+  cell.classList.remove('ship','nose-reveal','hit','miss','hit-nose');
+  if(v===1) {
+    if(myNose && myNose.r===r && myNose.c===c) cell.classList.add('nose-reveal');
+    else cell.classList.add('ship');
+  } else if(v===2) {
+    if(myNose && myNose.r===r && myNose.c===c) cell.classList.add('hit-nose');
+    else cell.classList.add('hit');
+  } else if(v===3) cell.classList.add('miss');
+}
+
+function getBoardCell(boardId, r, c) {
+  return document.getElementById(boardId)?.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+}
+
+function refreshMyCell(r,c) {
+  const cell = getBoardCell('my-board',r,c);
+  if(cell) applyMyBoardClass(cell,r,c);
+}
+
+function refreshEnemyCell(r,c) {
+  const cell = getBoardCell('enemy-board',r,c);
+  if(!cell) return;
+  cell.classList.remove('hit','miss','hit-nose');
+  const v = enemyBoard[r][c];
+  if(v===2) cell.classList.add('hit');
+  else if(v===1) cell.classList.add('miss');
+}
+
+// ── PLACEMENT GRID ───────────────────────────
+function buildPlacementGrid() {
+  const wrap = document.getElementById('placement-grid-wrap');
+  wrap.innerHTML = '';
+  const cont = document.createElement('div');
+  cont.id='place-board'; cont.className='grid-container';
+  wrap.appendChild(cont);
+
+  cont.appendChild(makeGH(''));
+  COLS.forEach(c => cont.appendChild(makeGH(c)));
+  for(let r=0; r<ROWS; r++) {
+    cont.appendChild(makeGH(r+1));
+    for(let c=0; c<COLS.length; c++) {
+      const cell = document.createElement('div');
+      cell.className='gc';
+      cell.dataset.r=r; cell.dataset.c=c;
+      cell.addEventListener('click', ()=>onPlaceClick(r,c));
+      cell.addEventListener('mouseenter', ()=>onPlaceHover(r,c));
+      cell.addEventListener('mouseleave', clearHover);
+      cont.appendChild(cell);
+    }
+  }
+}
+
+function getPC(r,c) {
+  return document.getElementById('place-board')?.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+}
+
+function clearHover() {
+  document.querySelectorAll('#place-board .gc').forEach(c=>{
+    c.classList.remove('ph-valid','ph-hover','ph-invalid','ph-nose');
+    const r=+c.dataset.r, cc=+c.dataset.c;
+    if(myBoard[r][cc]===1) {
+      c.classList.add(myNose&&myNose.r===r&&myNose.c===cc ? 'nose-reveal' : 'ship');
+    }
+  });
+}
+
+function onPlaceHover(r,c) {
+  clearHover();
+  if(placedCells.length>0) return;
+  const cells = getShipCells({r,c}, rotation);
+  const valid  = cellsValid(cells);
+  cells.forEach(({r:cr,c:cc},i)=>{
+    const el = getPC(cr,cc);
+    if(!el) return;
+    if(!valid) { el.classList.add('ph-invalid'); return; }
+    el.classList.add(i===0 ? 'ph-nose' : 'ph-valid');
+  });
+}
+
+function onPlaceClick(r,c) {
+  if(placedCells.length>0) return;
+  const cells = getShipCells({r,c}, rotation);
+  if(!cellsValid(cells)) {
+    setStatus('❌ Ship extends off grid — choose another position'); return;
+  }
+  placedCells = cells;
+  myNose = cells[0];
+  cells.forEach(({r:cr,c:cc},i)=>{
+    myBoard[cr][cc]=1;
+    const el=getPC(cr,cc);
+    if(el){el.classList.remove('ph-valid','ph-nose','ph-invalid');el.classList.add(i===0?'nose-reveal':'ship')}
+  });
+  setStatus('✓ Fighter deployed — confirm when ready');
+  document.getElementById('confirm-btn').style.display='block';
+}
+
+function setStatus(msg) {
+  document.getElementById('placement-status').textContent = msg;
+}
+
+function rotateShip() {
+  rotation=(rotation+1)%4;
+  buildShipPreview();
+  if(placedCells.length===0) clearHover();
+}
+
+function resetPlacement() {
+  placedCells=[]; myNose=null;
+  myBoard=newGrid();
+  buildPlacementGrid();
+  setStatus('');
+  document.getElementById('confirm-btn').style.display='none';
+}
+
+function randomPlace() {
+  resetPlacement();
+  for(let i=0;i<500;i++){
+    const r=Math.floor(Math.random()*ROWS), c=Math.floor(Math.random()*COLS.length);
+    const rot=Math.floor(Math.random()*4);
+    const cells=getShipCells({r,c},rot);
+    if(cellsValid(cells)){
+      rotation=rot; buildShipPreview();
+      onPlaceClick(r,c);
+      return;
+    }
+  }
+}
+
+function buildShipPreview() {
+  const cont = document.getElementById('preview-container');
+  if(!cont) return;
+  cont.innerHTML='';
+  const g = document.createElement('div');
+  g.className='preview-grid';
+  g.style.gridTemplateColumns='repeat(8,14px)';
+  g.style.gridTemplateRows='repeat(7,14px)';
+
+  // centre anchor inside 7×8 preview
+  const anchor = rotation===0||rotation===2 ? {r:3,c:3} : {r:3,c:2};
+  const cells = getShipCells(anchor, rotation);
+  const noseKey = `${cells[0].r},${cells[0].c}`;
+  const shipSet = new Set(cells.map(({r,c})=>`${r},${c}`));
+
+  for(let r=0;r<7;r++) for(let c=0;c<8;c++) {
+    const d=document.createElement('div');
+    const key=`${r},${c}`;
+    d.className='preview-cell'+(shipSet.has(key) ? (key===noseKey?' nose':' on') : '');
+    g.appendChild(d);
+  }
+  cont.appendChild(g);
+}
+
+// ── AI ──────────────────────────────────────
+function generateAiShip() {
+  for(let i=0;i<500;i++){
+    const r=Math.floor(Math.random()*ROWS), c=Math.floor(Math.random()*COLS.length);
+    const rot=Math.floor(Math.random()*4);
+    const cells=getShipCells({r,c},rot);
+    if(cellsValid(cells)){
+      enemyHidden=cells; enemyNoseCell=cells[0]; return;
+    }
+  }
+}
+
+function aiTurn() {
+  setTimeout(()=>{
+    let target;
+    while(aiQueue.length){
+      const t=aiQueue.shift();
+      if(!aiTried.has(`${t.r},${t.c}`)){ target=t; break; }
+    }
+    if(!target){
+      let tries=0;
+      do{
+        target={r:Math.floor(Math.random()*ROWS),c:Math.floor(Math.random()*COLS.length)};
+        tries++;if(tries>300)return;
+      }while(aiTried.has(`${target.r},${target.c}`));
+    }
+    aiTried.add(`${target.r},${target.c}`);
+    const isNose = myNose && myNose.r===target.r && myNose.c===target.c;
+    const hit    = myBoard[target.r][target.c]===1;
+
+    if(hit){
+      myBoard[target.r][target.c]=2;
+      enemyHitsCount++;
+      document.getElementById('enemy-hits').textContent=enemyHitsCount;
+      refreshMyCell(target.r,target.c);
+      if(isNose){
+        log(`⚡ AI hit your COCKPIT at ${COLS[target.c]}${target.r+1}! You lose!`,'l-nose');
+        gameOver(false); return;
+      }
+      log(`AI hit ${COLS[target.c]}${target.r+1}!`,'l-hit');
+      [[0,1],[0,-1],[1,0],[-1,0]].forEach(([dr,dc])=>{
+        const nr=target.r+dr,nc=target.c+dc;
+        if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS.length&&!aiTried.has(`${nr},${nc}`))
+          aiQueue.push({r:nr,c:nc});
+      });
+    } else {
+      myBoard[target.r][target.c]=3;
+      refreshMyCell(target.r,target.c);
+      log(`AI missed ${COLS[target.c]}${target.r+1}`,'l-miss');
+    }
+    myTurn=true; setTurnPill(true);
+  }, 900);
+}
+
+// ── ATTACK ──────────────────────────────────
+function onAttack(r,c) {
+  if(!gameActive||!myTurn) return;
+  if(enemyBoard[r][c]!==0){ log('Already fired at that grid!'); return; }
+
+  if(gameMode==='pve'){
+    const isNose = enemyNoseCell && enemyNoseCell.r===r && enemyNoseCell.c===c;
+    const hit    = enemyHidden.some(p=>p.r===r&&p.c===c);
+    processMyAttack(r, c, hit, isNose);
+  } else {
+    myTurn=false; setTurnPill(false);
+    sendMsg({type:'attack',r,c});
+  }
+}
+
+function processMyAttack(r,c,hit,isNose) {
+  myTurn=false;
+  if(hit){
+    enemyBoard[r][c]=2;
+    myHitsCount++;
+    document.getElementById('my-hits').textContent=myHitsCount;
+    refreshEnemyCell(r,c);
+    if(isNose){
+      // mark golden nose on enemy board
+      const cell=getBoardCell('enemy-board',r,c);
+      if(cell){cell.classList.remove('hit');cell.classList.add('hit-nose');}
+      log(`★ COCKPIT HIT at ${COLS[c]}${r+1}! MISSION COMPLETE!`,'l-nose');
+      if(gameMode==='pvp') sendMsg({type:'result',r,c,hit:true,isNose:true});
+      gameOver(true); return;
+    }
+    log(`HIT! ${COLS[c]}${r+1}`,'l-hit');
+    if(gameMode==='pvp') sendMsg({type:'result',r,c,hit:true,isNose:false});
+  } else {
+    enemyBoard[r][c]=1;
+    refreshEnemyCell(r,c);
+    log(`Miss · ${COLS[c]}${r+1}`,'l-miss');
+    if(gameMode==='pvp') sendMsg({type:'result',r,c,hit:false,isNose:false});
+  }
+  if(gameMode==='pve'){ setTurnPill(false); aiTurn(); }
+}
+
+function setTurnPill(mine) {
+  const el=document.getElementById('turn-pill');
+  el.textContent=mine?'YOUR TURN':'WAITING...';
+  el.className='turn-pill '+(mine?'mine':'theirs');
+}
+
+function gameOver(win) {
+  gameActive=false;
+  setTimeout(()=>showOverlay(win), 400);
+}
+
+// ── CONFIRM PLACEMENT ───────────────────────
+function confirmPlacement() {
+  if(!placedCells.length) return;
+  if(gameMode==='pve'){
+    generateAiShip();
+    startGame(true);
+  } else {
+    pvpMeReady=true;
+    sendMsg({type:'ready', cells:placedCells, nose:myNose});
+    setStatus('✓ Waiting for opponent…');
+    document.getElementById('confirm-btn').style.display='none';
+    if(pvpMeReady&&pvpThemReady) startPvPGame();
+  }
+}
+
+function startGame(iGoFirst) {
+  gameActive=true; myTurn=iGoFirst;
+  myHitsCount=0; enemyHitsCount=0;
+  document.getElementById('my-hits').textContent='0';
+  document.getElementById('enemy-hits').textContent='0';
+  document.getElementById('battle-log').innerHTML='';
+  buildGrid('my-board',false,true);
+  buildGrid('enemy-board',true,false);
+  setTurnPill(myTurn);
+  showScreen('game');
+  log(iGoFirst?'⚡ Battle started — you go first!':'⚡ Battle started — opponent goes first!','l-sys');
+  if(!iGoFirst&&gameMode==='pve') setTimeout(aiTurn,800);
+}
+
+function resetGameState() {
+  myBoard=newGrid(); enemyBoard=newGrid();
+  placedCells=[]; myNose=null; enemyNoseCell=null;
+  enemyHidden=[]; myHitsCount=0; enemyHitsCount=0;
+  myTurn=true; gameActive=false; aiTried=new Set(); aiQueue=[];
+  rotation=0;
+}
+
+// ── PvE ─────────────────────────────────────
+function startPvE() {
+  gameMode='pve'; resetGameState();
+  buildPlacementGrid(); buildShipPreview();
+  showScreen('placement');
+}
+
+// ── WebRTC ──────────────────────────────────
+function toggleNet() {
+  const p=document.getElementById('net-panel');
+  p.style.display = p.style.display==='none' ? 'block' : 'none';
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.net-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.net-section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+async function createOffer() {
+  isHost=true; gameMode='pvp';
+  pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+  dc=pc.createDataChannel('game'); setupDC(dc);
+  pc.onicecandidate=e=>{
+    if(!e.candidate){
+      document.getElementById('offer-box').textContent=btoa(JSON.stringify(pc.localDescription));
+      document.getElementById('offer-area').style.display='block';
+    }
+  };
+  const offer=await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  document.getElementById('host-status').innerHTML=badge('wait','⏳ Gathering ICE candidates…');
+}
+
+async function connectAnswer() {
+  const ans=document.getElementById('answer-input').value.trim(); if(!ans) return;
+  try {
+    await pc.setRemoteDescription(JSON.parse(atob(ans)));
+    document.getElementById('host-status').innerHTML=badge('wait','⏳ Connecting…');
+  } catch(e) {
+    document.getElementById('host-status').innerHTML=badge('err','❌ Invalid answer code');
+  }
+}
+
+async function joinRoom() {
+  isHost=false; gameMode='pvp';
+  const offerStr=document.getElementById('offer-input').value.trim(); if(!offerStr) return;
+  try {
+    const desc=JSON.parse(atob(offerStr));
+    pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+    pc.ondatachannel=e=>{dc=e.channel;setupDC(dc)};
+    pc.onicecandidate=e=>{
+      if(!e.candidate){
+        document.getElementById('answer-box').textContent=btoa(JSON.stringify(pc.localDescription));
+        document.getElementById('answer-area').style.display='block';
+      }
+    };
+    await pc.setRemoteDescription(desc);
+    const answer=await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    document.getElementById('join-status').innerHTML=badge('wait','⏳ Gathering ICE candidates…');
+  } catch(e) {
+    document.getElementById('join-status').innerHTML=badge('err','❌ Invalid room code');
+  }
+}
+
+function badge(cls,txt){return`<span class="badge ${cls}">${txt}</span>`}
+
+function setupDC(channel) {
+  channel.onopen=()=>{
+    const sid=isHost?'host-status':'join-status';
+    document.getElementById(sid).innerHTML=badge('ok','✓ Connected! Entering deployment…');
+    setTimeout(()=>{
+      resetGameState(); pvpMeReady=false; pvpThemReady=false;
+      buildPlacementGrid(); buildShipPreview();
+      showScreen('placement');
+    },1000);
+  };
+  channel.onmessage=e=>handleMsg(JSON.parse(e.data));
+  channel.onclose=()=>{ if(gameActive){gameActive=false;alert('Opponent disconnected!');returnMenu();} };
+}
+
+function sendMsg(msg) {
+  if(gameMode!=='pvp'||!dc||dc.readyState!=='open') return;
+  dc.send(JSON.stringify(msg));
+}
+
+function handleMsg(msg) {
+  if(msg.type==='ready') {
+    pvpThemReady=true;
+    enemyHidden=msg.cells; enemyNoseCell=msg.nose;
+    if(pvpMeReady&&pvpThemReady) startPvPGame();
+  } else if(msg.type==='attack') {
+    // Opponent attacks me
+    const isNose = myNose&&myNose.r===msg.r&&myNose.c===msg.c;
+    const hit    = myBoard[msg.r][msg.c]===1;
+    if(hit){
+      myBoard[msg.r][msg.c]=2;
+      enemyHitsCount++;
+      document.getElementById('enemy-hits').textContent=enemyHitsCount;
+      refreshMyCell(msg.r,msg.c);
+      if(isNose){
+        log(`★ Opponent hit YOUR COCKPIT at ${COLS[msg.c]}${msg.r+1}!`,'l-nose');
+        sendMsg({type:'result',r:msg.r,c:msg.c,hit:true,isNose:true,iWin:true});
+        gameOver(false); return;
+      }
+      log(`Opponent HIT ${COLS[msg.c]}${msg.r+1}`,'l-hit');
+      sendMsg({type:'result',r:msg.r,c:msg.c,hit:true,isNose:false,iWin:false});
+    } else {
+      myBoard[msg.r][msg.c]=3;
+      refreshMyCell(msg.r,msg.c);
+      log(`Opponent missed ${COLS[msg.c]}${msg.r+1}`,'l-miss');
+      sendMsg({type:'result',r:msg.r,c:msg.c,hit:false,isNose:false,iWin:false});
+    }
+    myTurn=true; setTurnPill(true);
+  } else if(msg.type==='result') {
+    if(msg.iWin){ gameOver(false); return; }
+    if(msg.hit){
+      enemyBoard[msg.r][msg.c]=2;
+      myHitsCount++;
+      document.getElementById('my-hits').textContent=myHitsCount;
+      if(msg.isNose){
+        const cell=getBoardCell('enemy-board',msg.r,msg.c);
+        if(cell){cell.classList.remove('hit');cell.classList.add('hit-nose');}
+        log(`★ COCKPIT HIT at ${COLS[msg.c]}${msg.r+1}! Victory!`,'l-nose');
+        gameOver(true); return;
+      }
+      refreshEnemyCell(msg.r,msg.c);
+      log(`HIT ${COLS[msg.c]}${msg.r+1}`,'l-hit');
+    } else {
+      enemyBoard[msg.r][msg.c]=1;
+      refreshEnemyCell(msg.r,msg.c);
+      log(`Miss · ${COLS[msg.c]}${msg.r+1}`,'l-miss');
+    }
+    myTurn=false; setTurnPill(false);
+  }
+}
+
+function startPvPGame() { startGame(isHost); }
+
+// ── MISC ────────────────────────────────────
+function copyText(id) {
+  const txt=document.getElementById(id).textContent;
+  navigator.clipboard.writeText(txt).catch(()=>{
+    const ta=document.createElement('textarea');
+    ta.value=txt;document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);
+  });
+  alert('Copied to clipboard!');
+}
+
+function returnMenu() {
+  document.getElementById('overlay').classList.remove('show');
+  if(dc){try{dc.close()}catch(e){} dc=null}
+  if(pc){try{pc.close()}catch(e){} pc=null}
+  pvpMeReady=false; pvpThemReady=false;
+  resetGameState();
+  showScreen('menu');
+}
+
+function quitGame() {
+  if(confirm('Quit current game?')) returnMenu();
+}
+
+function showRules() {
+  alert(`FIGHTER ACE — How to Play
+
+SHIP SHAPE (12 cells total):
+  ★ Cockpit/Nose : 1 cell (front tip)
+  Wings          : 3 + centre + 3 = 7 cells
+  Tail connector : 1 cell
+  Tail tips      : 3 cells
+
+GRID: Columns A–J, Rows 1–10
+
+PLACEMENT:
+  Click grid to place your fighter.
+  Press R (or button) to rotate.
+  Gold ★ marks your cockpit.
+
+VICTORY CONDITION:
+  Hit the enemy's ★ COCKPIT to win instantly!
+  Body hits score but don't end the game.
+
+TURNS alternate — one shot per turn.
+
+LAN PLAY: Use WebRTC codes to connect
+  (works on same network or over internet).`);
+}
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if((e.key==='r'||e.key==='R') && document.getElementById('placement').classList.contains('active'))
+    rotateShip();
+});
+
+// Init
+buildShipPreview();
+</script>
+</body>
+</html>

@@ -1053,19 +1053,58 @@ function switchTab(id) {
   event.currentTarget.classList.add('active');
 }
 
-async function createOffer() {
-  isHost=true; gameMode='pvp';
-  pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
-  dc=pc.createDataChannel('game'); setupDC(dc);
-  pc.onicecandidate=e=>{
-    if(!e.candidate){
-      document.getElementById('offer-box').textContent=btoa(JSON.stringify(pc.localDescription));
-      document.getElementById('offer-area').style.display='block';
+const ICE_SERVERS=[
+  {urls:'stun:stun.l.google.com:19302'},
+  {urls:'stun:stun1.l.google.com:19302'},
+  {urls:'stun:stun.cloudflare.com:3478'},
+  {urls:'stun:stun.relay.metered.ca:80'}
+];
+const ICE_TIMEOUT_MS=3000;
+
+function setupICEGathering(peerConn,onDone,statusId) {
+  let settled=false;
+  const finish=()=>{if(!settled){settled=true;onDone();}};
+  const timer=setTimeout(()=>{
+    console.warn('ICE gathering timed out – using candidates gathered so far');
+    finish();
+  },ICE_TIMEOUT_MS);
+  peerConn.onicecandidate=e=>{
+    if(!e.candidate){clearTimeout(timer);finish();}
+  };
+  peerConn.onicegatheringstatechange=()=>{
+    console.log('ICE gathering state:',peerConn.iceGatheringState);
+    if(peerConn.iceGatheringState==='complete'){clearTimeout(timer);finish();}
+  };
+  peerConn.oniceconnectionstatechange=()=>{
+    const s=peerConn.iceConnectionState;
+    console.log('ICE connection state:',s);
+    if(s==='failed'||s==='disconnected'){
+      document.getElementById(statusId).innerHTML=badge('err','❌ Connection lost – try again');
     }
   };
+}
+
+async function createOffer() {
+  isHost=true; gameMode='pvp';
+  pc=new RTCPeerConnection({iceServers:ICE_SERVERS});
+  dc=pc.createDataChannel('game'); setupDC(dc);
+  document.getElementById('host-status').innerHTML=badge('wait','⏳ Gathering ICE candidates…');
+  const gatheringDone=new Promise(resolve=>{
+    setupICEGathering(pc,()=>{
+      const sdp=pc.localDescription;
+      if(!sdp){
+        document.getElementById('host-status').innerHTML=badge('err','❌ ICE gathering failed – try again');
+        resolve(); return;
+      }
+      document.getElementById('offer-box').textContent=btoa(JSON.stringify(sdp));
+      document.getElementById('offer-area').style.display='block';
+      document.getElementById('host-status').innerHTML=badge('wait','⏳ Waiting for guest to join…');
+      resolve();
+    },'host-status');
+  });
   const offer=await pc.createOffer();
   await pc.setLocalDescription(offer);
-  document.getElementById('host-status').innerHTML=badge('wait','⏳ Gathering ICE candidates…');
+  await gatheringDone;
 }
 
 async function connectAnswer() {
@@ -1083,18 +1122,26 @@ async function joinRoom() {
   const offerStr=document.getElementById('offer-input').value.trim(); if(!offerStr) return;
   try {
     const desc=JSON.parse(atob(offerStr));
-    pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+    pc=new RTCPeerConnection({iceServers:ICE_SERVERS});
     pc.ondatachannel=e=>{dc=e.channel;setupDC(dc)};
-    pc.onicecandidate=e=>{
-      if(!e.candidate){
-        document.getElementById('answer-box').textContent=btoa(JSON.stringify(pc.localDescription));
+    document.getElementById('join-status').innerHTML=badge('wait','⏳ Gathering ICE candidates…');
+    const gatheringDone=new Promise(resolve=>{
+      setupICEGathering(pc,()=>{
+        const sdp=pc.localDescription;
+        if(!sdp){
+          document.getElementById('join-status').innerHTML=badge('err','❌ ICE gathering failed – try again');
+          resolve(); return;
+        }
+        document.getElementById('answer-box').textContent=btoa(JSON.stringify(sdp));
         document.getElementById('answer-area').style.display='block';
-      }
-    };
+        document.getElementById('join-status').innerHTML=badge('wait','⏳ Waiting for host to accept…');
+        resolve();
+      },'join-status');
+    });
     await pc.setRemoteDescription(desc);
     const answer=await pc.createAnswer();
     await pc.setLocalDescription(answer);
-    document.getElementById('join-status').innerHTML=badge('wait','⏳ Gathering ICE candidates…');
+    await gatheringDone;
   } catch(e) {
     document.getElementById('join-status').innerHTML=badge('err','❌ Invalid room code');
   }
